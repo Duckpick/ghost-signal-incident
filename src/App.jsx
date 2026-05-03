@@ -1168,7 +1168,7 @@ alert(
 </p>
 
 <p>
-  Contact: playicd01@gmail.com
+  Contact: gameduckman@gmail.com
 </p>
   <div style={styles.footerLinks}>
   <button
@@ -1223,7 +1223,7 @@ alert(
     : "We will review your inquiry and respond where possible."}
 </p>
 
-<p>Email: playicd01@gmail.com</p>
+<p>Email: gameduckman@gmail.com</p>
   <div style={styles.footerLinks}>
   <button style={styles.footerLinkBtn} onClick={() => goPage("/privacy")}>
     {t.privacy}
@@ -1953,12 +1953,12 @@ style={{
       https://policies.google.com/technologies/ads
     </div>
     <div>
-      문의: playicd01@gmail.com
+      문의: gameduckman@gmail.com
     </div>
   </>
 ) : popup === "contact" ? (
   <>
-    <div>Email: playicd01@gmail.com</div>
+    <div>Email: gameduckman@gmail.com</div>
   </>
 ) : popup === "support" ? (
   <>
