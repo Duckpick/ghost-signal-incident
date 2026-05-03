@@ -2407,7 +2407,7 @@ const styles = {
   },
 
   adBox: {
-    marginTop: "30px",
+    marginTop: "80px",
     height: "100px",
     background: "#222",
     borderRadius: "10px",
@@ -2745,7 +2745,7 @@ margin: "0 auto",
     fontWeight: "bold",
   },
   siteFooter: {
-    marginTop: "100px",
+    marginTop: "80px",
     padding: "16px 12px",
     borderRadius: "14px",
     background: "#0b1018",
