@@ -45,7 +45,6 @@ const HORSES = [
 function formatMoney(value, language = "ko") {
   const v = Math.floor(value)
 
-  // 영어 (K / M / B / T)
   if (language === "en") {
     if (v >= 1e12) return (v / 1e12).toFixed(1) + "T"
     if (v >= 1e9) return (v / 1e9).toFixed(1) + "B"
@@ -54,18 +53,26 @@ function formatMoney(value, language = "ko") {
     return v.toLocaleString("en-US")
   }
 
-  // 한국어 (억 단위)
   const EOK = 100_000_000
+  const JO = 1_000_000_000_000
+  const GYEONG = 10_000_000_000_000_000
+
+  if (v >= GYEONG) {
+    const gyeong = Math.floor(v / GYEONG)
+    const restJo = Math.floor((v % GYEONG) / JO)
+    return restJo > 0 ? `${gyeong}경 ${restJo}조` : `${gyeong}경`
+  }
+
+  if (v >= JO) {
+    const jo = Math.floor(v / JO)
+    const restEok = Math.floor((v % JO) / EOK)
+    return restEok > 0 ? `${jo}조 ${restEok}억` : `${jo}조`
+  }
 
   if (v >= EOK) {
     const eok = Math.floor(v / EOK)
     const rest = v % EOK
-
-    if (rest > 0) {
-      return `${eok}억 ${rest.toLocaleString()}`
-    }
-
-    return `${eok}억`
+    return rest > 0 ? `${eok}억 ${rest.toLocaleString("ko-KR")}` : `${eok}억`
   }
 
   return v.toLocaleString("ko-KR")
@@ -332,9 +339,10 @@ volume: "볼륨",
 close: "닫기",
 rules: [
   "1. 기수를 선택하고 배팅 비율을 정합니다.",
-  "2. 레이스에서 선택한 기수가 우승하면 배당금을 얻습니다.",
-  "3. 패배하면 배팅 금액을 잃습니다.",
+  "2. 레이스에서 선택한 기수가 우승하면 가상 재화를 얻습니다.",
+  "3. 패배하면 배팅한 가상 재화를 잃습니다.",
   "4. 자산이 10만원 미만이면 100만원으로 재시작됩니다.",
+  "5. 본 게임은 실제 현금 거래가 없는 엔터테인먼트용 시뮬레이션입니다.",
 ],
 speed: "속도",
 curve: "커브",
@@ -347,7 +355,8 @@ subscribe: "구독",
 subDesc: "X2배속 · 광고 제거",
 revive: "🎬 부활하기 (광고보기)",
 aboutTitle: "게임 소개",
-aboutText: "Horse Betting Simulator는 확률 기반 레이싱 웹게임입니다. 기수를 선택하고 배팅하여 결과를 예측하는 간단한 엔터테인먼트 게임입니다.",
+aboutText:
+  "Horse Betting Simulator는 확률 기반 레이싱 웹게임으로, 각 기수의 능력치와 승률에 따라 결과가 결정됩니다. 플레이어는 기수를 선택하고 배팅을 진행하며, 연승과 보너스를 통해 자산을 늘릴 수 있습니다. 본 게임은 실제 금전이 아닌 가상 재화를 사용하는 엔터테인먼트 목적의 시뮬레이션 게임입니다.",
 privacy: "개인정보처리방침",
 contact: "문의",
 support: "후원",
@@ -386,9 +395,10 @@ volume: "Volume",
 close: "Close",
 rules: [
   "1. Choose a rider and set your bet rate.",
-  "2. Win the race to earn rewards.",
-  "3. Lose the race and your bet is lost.",
+  "2. Win the race to earn virtual currency rewards.",
+  "3. Lose the race and your virtual bet is lost.",
   "4. If assets drop below 100,000, restart with 1,000,000.",
+  "5. This is an entertainment simulation with no real-money transactions.",
 ],
 speed: "Speed",
 curve: "Curve",
@@ -401,7 +411,8 @@ subscribe: "Subscribe",
 subDesc: "X2 Speed · No Ads",
 revive: "🎬 Revive (Watch Ad)",
 aboutTitle: "About",
-aboutText: "Horse Betting Simulator is a simple probability-based racing web game. Choose a rider, place a bet, and predict the result for entertainment.",
+aboutText:
+  "Horse Betting Simulator is a probability-based racing web game where results are determined by each rider’s stats and win rate. Players select riders, place bets, and grow their assets through wins and streak bonuses. This game uses virtual currency only and is intended purely for entertainment purposes.",
 privacy: "Privacy Policy",
 contact: "Contact",
 support: "Support",
@@ -458,10 +469,7 @@ export default function App() {
 
   const scale = isMobile
     ? 1
-    : Math.min(
-        window.innerWidth / 390,
-        window.innerHeight / 844
-      )
+    : Math.min(1, window.innerHeight / 844)
 
   const [displayProfit, setDisplayProfit] = useState(0)
   const savedData = loadSaveData()
@@ -470,6 +478,7 @@ export default function App() {
   const [screen, setScreen] = useState("main")
   const [page, setPage] = useState(window.location.pathname)
   const [popup, setPopup] = useState(null)
+  const [installPrompt, setInstallPrompt] = useState(null)
   const setting = loadSetting()
 
   const [soundOn, setSoundOn] = useState(
@@ -531,7 +540,9 @@ const [roundWinner, setRoundWinner] = useState(null)
   const [countdown, setCountdown] = useState(null)
   const [result, setResult] = useState(null)
   const [isNewRecord, setIsNewRecord] = useState(false)
-  const [reviveUsed, setReviveUsed] = useState(false)
+  const [reviveUsed, setReviveUsed] = useState(
+    savedData?.reviveUsed || false
+  )
 
   const betAmount = Math.floor(money * betRate)
 
@@ -568,6 +579,7 @@ const [roundWinner, setRoundWinner] = useState(null)
       maxWinStreak,
       winCount,
       totalGame,
+      reviveUsed,
     })
   }, [
     nickname,
@@ -577,6 +589,7 @@ const [roundWinner, setRoundWinner] = useState(null)
     maxWinStreak,
     winCount,
     totalGame,
+    reviveUsed,
   ])
   useEffect(() => {
     const raw = localStorage.getItem(ACTIVE_RACE_KEY)
@@ -692,6 +705,19 @@ const [roundWinner, setRoundWinner] = useState(null)
   }, [soundOn, bgmOn, volume, language])
 
   useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault()
+      setInstallPrompt(e)
+    }
+
+    window.addEventListener("beforeinstallprompt", handler)
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler)
+    }
+  }, [])
+
+  useEffect(() => {
     if (screen !== "race" || !raceWinner) return
   
     setRaceProgress(0)
@@ -774,6 +800,7 @@ const [roundWinner, setRoundWinner] = useState(null)
     setMaxWinStreak(0)
     setWinCount(0)
     setTotalGame(0)
+    setReviveUsed(false)
   
     const newCards = generateCards()
     setCards(newCards)
@@ -980,7 +1007,7 @@ alert(
     const link = document.createElement("a")
   
     link.href = image
-    link.download = "horse-record.png"
+    link.download = `horse-record-${Date.now()}.png`
     link.click()
   }
   const handleRevive = () => {
@@ -992,16 +1019,26 @@ alert(
     const recoveredMoney = result.money + Math.abs(result.profit)
   
     setMoney(recoveredMoney)
+    setCurrentWinStreak(0)
   
-    setResult({
-      ...result,
-      profit: 0,
-      money: recoveredMoney,
-      restarted: false,
-    })
+    const newCards = generateCards()
+    setCards(newCards)
+    saveCurrentCards(newCards)
+  
+    setSelectedCard(null)
+    setRaceWinner(null)
+    setRaceTrack(getRandomTrack())
+    setRaceProgress(0)
+    setCountdown(null)
+    setRound(1)
+    setScore({ a: 0, b: 0 })
+    setRoundWinner(null)
+    setResult(null)
+  
+    localStorage.setItem(LAST_SCREEN_KEY, "main")
+    setScreen("main")
   }
   const nextRound = () => {
-    setReviveUsed(false)
     setIsNewRecord(false)
   
     const newCards = generateCards()
@@ -1080,25 +1117,48 @@ alert(
   </div>
 
   <p>
-    {language === "ko"
-      ? "본 사이트는 사용자 개인정보를 직접 수집하지 않습니다."
-      : "This site does not directly collect personal information from users."}
-  </p>
+  {language === "ko"
+    ? "본 사이트는 사용자의 개인정보를 직접 수집하지 않습니다."
+    : "This site does not directly collect personal information."}
+</p>
 
-  <p>
-    {language === "ko"
-      ? "Google AdSense를 사용할 수 있으며, 광고 제공을 위해 쿠키가 사용될 수 있습니다."
-      : "Google AdSense may use cookies to provide ads."}
-  </p>
+<p>
+  {language === "ko"
+    ? "본 사이트는 Google AdSense를 사용하며, 광고 제공을 위해 쿠키 및 웹 비콘과 같은 기술이 사용될 수 있습니다."
+    : "This site uses Google AdSense, which may use cookies and web beacons to serve ads."}
+</p>
 
-  <p>
-    {language === "ko"
-      ? "사용자는 브라우저 설정에서 쿠키를 비활성화할 수 있습니다."
-      : "Users can disable cookies in their browser settings."}
-  </p>
+<p>
+  {language === "ko"
+    ? "Google은 사용자의 이전 방문 기록을 기반으로 맞춤 광고를 제공할 수 있습니다."
+    : "Google may use users' previous visits to provide personalized ads."}
+</p>
 
-  <p>Google Ads Policy: https://policies.google.com/technologies/ads</p>
-  <p>Contact: icd19880322@email.com</p>
+<p>
+  {language === "ko"
+    ? "사용자는 광고 설정에서 맞춤 광고를 비활성화할 수 있습니다."
+    : "Users may opt out of personalized advertising by visiting Ads Settings."}
+</p>
+
+<p>
+  {language === "ko"
+    ? "또한 제3자 광고 공급업체가 쿠키를 사용하여 광고를 제공할 수 있습니다."
+    : "Third-party vendors may also use cookies to serve ads."}
+</p>
+
+<p>
+  {language === "ko"
+    ? "사용자는 브라우저 설정을 통해 쿠키 저장을 거부할 수 있습니다."
+    : "Users can disable cookies through their browser settings."}
+</p>
+
+<p>
+  Google Ads Policy: https://policies.google.com/technologies/ads
+</p>
+
+<p>
+  Contact: playicd01@gmail.com
+</p>
   <div style={styles.footerLinks}>
   <button
     style={styles.footerLinkBtn}
@@ -1140,13 +1200,19 @@ alert(
   {language === "ko" ? "문의" : "Contact"}
 </div>
 
-  <p>
-    {language === "ko"
-      ? "문의 사항은 아래 이메일로 연락주세요."
-      : "For questions or support, please contact us by email."}
-  </p>
+<p>
+  {language === "ko"
+    ? "Duckpick Horse Betting Simulator 관련 문의, 오류 제보, 광고 및 기타 요청은 아래 이메일로 연락할 수 있습니다."
+    : "For questions, bug reports, advertising inquiries, or other requests related to Duckpick Horse Betting Simulator, please contact us by email."}
+</p>
 
-  <p>Email: icd19880322@email.com</p>
+<p>
+  {language === "ko"
+    ? "문의 시 확인 후 가능한 범위 내에서 답변드립니다."
+    : "We will review your inquiry and respond where possible."}
+</p>
+
+<p>Email: playicd01@gmail.com</p>
   <div style={styles.footerLinks}>
   <button style={styles.footerLinkBtn} onClick={() => goPage("/privacy")}>
     {t.privacy}
@@ -1186,10 +1252,10 @@ alert(
   </p>
 
   <p>
-    {language === "ko"
-      ? "후원 기능은 추후 추가됩니다."
-      : "Support feature will be added later."}
-  </p>
+  {language === "ko"
+    ? "현재 별도의 결제나 후원 기능은 제공하지 않습니다."
+    : "This site currently does not provide payment or donation features."}
+</p>
   <div style={styles.footerLinks}>
   <button style={styles.footerLinkBtn} onClick={() => goPage("/privacy")}>
     {t.privacy}
@@ -1208,14 +1274,16 @@ alert(
         </div>
       )
     }
-  return (
-    <div style={styles.page}>
-<div
-  style={{
-    ...styles.app,
-    transform: `scale(${scale})`,
-  }}
->
+    return (
+      <div style={styles.page}>
+        {!isMobile && <div style={styles.sideAd}>{t.ad}</div>}
+    
+        <div
+          style={{
+            ...styles.app,
+            transform: `scale(${scale})`,
+          }}
+        >
       {screen === "main" && (
   <>
     {/* 상단 정보 */}
@@ -1380,6 +1448,7 @@ alert(
     <button style={styles.startBtn} onClick={startRace}>
       {t.startRace}
     </button>
+
 
     {/* 하단 배너 광고 영역 */}
     <div style={styles.adBox}>
@@ -1867,12 +1936,12 @@ style={{
       https://policies.google.com/technologies/ads
     </div>
     <div>
-      문의: icd19880322@email.com
+      문의: playicd01@gmail.com
     </div>
   </>
 ) : popup === "contact" ? (
   <>
-    <div>Email: icd19880322@email.com</div>
+    <div>Email: playicd01@gmail.com</div>
   </>
 ) : popup === "support" ? (
   <>
@@ -1900,6 +1969,20 @@ style={{
 >
 {t.recordReset}
   </button>
+
+  {installPrompt && (
+  <button
+    style={styles.popupBtn}
+    onClick={async () => {
+      playSound("click")
+      installPrompt.prompt()
+      await installPrompt.userChoice
+      setInstallPrompt(null)
+    }}
+  >
+    {language === "ko" ? "홈화면 추가" : "Add to Home"}
+  </button>
+)}
 
   <div style={styles.settingRow}>
   {t.sound}
@@ -1987,9 +2070,11 @@ style={{
     </div>
   </div>
 )}
-      </div>
     </div>
-  )
+
+{!isMobile && <div style={styles.sideAd}>{t.ad}</div>}
+</div>
+)
 }
 
 const styles = {
@@ -2007,6 +2092,8 @@ const styles = {
   app: {
     position: "relative",
     width: "390px",
+    minWidth: "390px",
+    flexShrink: 0,
     minHeight: "844px",
     transformOrigin: "top center",
     background: "linear-gradient(180deg, #111820 0%, #050608 100%)",
@@ -2313,6 +2400,20 @@ const styles = {
     color: "#777",
     fontSize: "14px",
   },
+  sideAd: {
+    width: "160px",
+    height: "600px",
+    margin: "20px 16px",
+    background: "#222",
+    borderRadius: "12px",
+    border: "1px solid #333",
+    color: "#777",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "14px",
+    flexShrink: 0,
+  },
 
   resultWrap: {
     textAlign: "center",
@@ -2451,6 +2552,8 @@ const styles = {
   },
 
   shareCard: {
+    width: "280px",
+margin: "0 auto",
     padding: "22px",
     borderRadius: "18px",
     background: "linear-gradient(180deg, #1f2937 0%, #080b10 100%)",
@@ -2685,6 +2788,16 @@ const styles = {
     color: "#f6c343",
     fontSize: "24px",
     marginBottom: "16px",
+  },
+  installBtn: {
+    width: "100%",
+    marginTop: "8px",
+    padding: "10px",
+    borderRadius: "12px",
+    border: "1px solid #f6c343",
+    background: "#1a1a1a",
+    color: "#f6c343",
+    fontWeight: "bold",
   },
 
 }
