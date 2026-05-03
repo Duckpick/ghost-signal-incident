@@ -2258,7 +2258,7 @@ const styles = {
   tierBadge: {
     width: "24px",
     height: "24px",
-    borderRadius: "50%",
+    borderRadius: "6px", // 변경
     color: "#111",
     display: "flex",
     justifyContent: "center",
