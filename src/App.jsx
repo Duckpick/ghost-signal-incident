@@ -621,9 +621,11 @@ const [roundWinner, setRoundWinner] = useState(null)
         isWin: false,
         winner: null,
         selectedCard: savedResult.selectedCard,
+        canRevive: !savedResult.restarted && !reviveUsed,
         profit: savedResult.profit,
         money: savedResult.money,
         restarted: savedResult.restarted,
+        beforeRestartMoney: savedResult.beforeRestartMoney ?? savedResult.money,
       })
   
       localStorage.removeItem(F5_LOSE_RESULT_KEY)
@@ -637,11 +639,13 @@ const [roundWinner, setRoundWinner] = useState(null)
       const activeRace = JSON.parse(raw)
   
       let nextMoney = activeRace.money - activeRace.betAmount
+      const beforeRestartMoney = activeRace.money - activeRace.betAmount
       let restarted = false
   
       if (nextMoney < 100000) {
         nextMoney = START_MONEY
         restarted = true
+        resetUserProgress()
       }
   
       const savedResult = {
@@ -650,6 +654,7 @@ const [roundWinner, setRoundWinner] = useState(null)
         money: nextMoney,
         restarted,
         totalGame: activeRace.totalGame + 1,
+        beforeRestartMoney: beforeRestartMoney,
       }
   
       localStorage.removeItem(ACTIVE_RACE_KEY)
@@ -663,9 +668,11 @@ const [roundWinner, setRoundWinner] = useState(null)
         isWin: false,
         winner: null,
         selectedCard: activeRace.selectedCard,
+        canRevive: !restarted && !reviveUsed,
         profit: -activeRace.betAmount,
         money: nextMoney,
         restarted,
+        beforeRestartMoney: nextMoney,
       })
   
       setScreen("result")
@@ -799,14 +806,7 @@ const [roundWinner, setRoundWinner] = useState(null)
     window.scrollTo(0, 0)
   }
 
-  const resetData = () => {
-    const ok = confirm(t.resetConfirm)
-    if (!ok) return
-  
-    localStorage.removeItem(STORAGE_KEY)
-    localStorage.removeItem(CURRENT_CARDS_KEY)
-  
-    setNickname(language === "ko" ? "질주본능" : "Racer")
+  const resetUserProgress = () => {
     setMoney(START_MONEY)
     setMaxMoney(START_MONEY)
     setCurrentWinStreak(0)
@@ -815,14 +815,49 @@ const [roundWinner, setRoundWinner] = useState(null)
     setTotalGame(0)
     setReviveUsed(false)
   
+    saveData({
+      nickname,
+      money: START_MONEY,
+      maxMoney: START_MONEY,
+      currentWinStreak: 0,
+      maxWinStreak: 0,
+      winCount: 0,
+      totalGame: 0,
+      reviveUsed: false,
+    })
+  }
+
+  const resetData = () => {
+    const ok = confirm(t.resetConfirm)
+    if (!ok) return
+  
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(CURRENT_CARDS_KEY)
+    localStorage.removeItem(ACTIVE_RACE_KEY)
+    localStorage.removeItem(LAST_SCREEN_KEY)
+    localStorage.removeItem(F5_LOSE_RESULT_KEY)
+  
+    setNickname(language === "ko" ? "질주본능" : "Racer")
+    resetUserProgress()
+  
     const newCards = generateCards()
     setCards(newCards)
     saveCurrentCards(newCards)
   
     setSelectedCard(null)
+    setResult(null)
+    setRaceWinner(null)
+    setRaceProgress(0)
+    setCountdown(null)
+    setRound(1)
+    setScore({ a: 0, b: 0 })
+    setRoundWinner(null)
+  
     setScreen("main")
   }
   const changeCards = () => {
+    if (money <= 100000) return
+  
     const cost = Math.floor(money * 0.05)
   
     if (money <= cost) return
@@ -935,41 +970,67 @@ const [roundWinner, setRoundWinner] = useState(null)
       nextCurrentStreak = 0
     }
   
+    const beforeRestartMoney = nextMoney
     const restarted = nextMoney < 100000
-  
+    
+    let nextMaxMoney = Math.max(maxMoney, nextMoney)
+    let nextMaxStreak = Math.max(maxWinStreak, nextCurrentStreak)
+    let nextTotalGame = totalGame + 1
+    let nextReviveUsed = reviveUsed
+    
     if (restarted) {
       nextMoney = START_MONEY
       nextCurrentStreak = 0
+      nextWinCount = 0
+      nextMaxMoney = START_MONEY
+      nextMaxStreak = 0
+      nextTotalGame = 0
+      nextReviveUsed = false
+    
+      resetUserProgress()
     }
-  
-    const nextMaxMoney = Math.max(maxMoney, nextMoney)
-    const nextMaxStreak = Math.max(maxWinStreak, nextCurrentStreak)
-    const isRecord = nextMoney > maxMoney
-
+    
+    const isRecord = !restarted && nextMoney > maxMoney
+    
     const prevTier = getTier(maxMoney)
-const nextTier = getTier(nextMaxMoney)
-
-const isTierUp = prevTier.name !== nextTier.name
-
-if (isTierUp) {
-  setTimeout(() => {
-    setTierUpInfo({
-      prevTier,
-      nextTier,
-    })
-  }, 500)
-}
-  
+    const nextTier = getTier(nextMaxMoney)
+    const isTierUp = !restarted && prevTier.name !== nextTier.name
+    
+    if (isTierUp) {
+      setTimeout(() => {
+        setTierUpInfo({
+          prevTier,
+          nextTier,
+        })
+      }, 500)
+    }
+    
     setIsNewRecord(isRecord)
-  
+    
     setMoney(nextMoney)
     setMaxMoney(nextMaxMoney)
     setCurrentWinStreak(nextCurrentStreak)
     setMaxWinStreak(nextMaxStreak)
     setWinCount(nextWinCount)
-    setTotalGame(totalGame + 1)
-  
+    setTotalGame(nextTotalGame)
+    setReviveUsed(nextReviveUsed)
+    
+    if (!restarted) {
+      saveData({
+        nickname,
+        money: nextMoney,
+        maxMoney: nextMaxMoney,
+        currentWinStreak: nextCurrentStreak,
+        maxWinStreak: nextMaxStreak,
+        winCount: nextWinCount,
+        totalGame: nextTotalGame,
+        reviveUsed: nextReviveUsed,
+      })
+    }
+    
     setResult({
+      beforeRestartMoney,
+      canRevive: !isWin && !restarted && !nextReviveUsed,
       isWin,
       winner: finalWinner,
       selectedCard,
@@ -977,7 +1038,7 @@ if (isTierUp) {
       money: nextMoney,
       restarted,
     })
-  
+    
     localStorage.removeItem(ACTIVE_RACE_KEY)
     localStorage.setItem(LAST_SCREEN_KEY, "result")
     setScreen("result")
@@ -1045,9 +1106,22 @@ alert(
     if (!result) return
     if (reviveUsed) return
   
+    const recoveredMoney =
+      (result.restarted ? result.beforeRestartMoney : result.money) +
+      Math.abs(result.profit)
+  
     setReviveUsed(true)
   
-    const recoveredMoney = result.money + Math.abs(result.profit)
+    saveData({
+      nickname,
+      money: recoveredMoney,
+      maxMoney,
+      currentWinStreak: 0,
+      maxWinStreak,
+      winCount,
+      totalGame,
+      reviveUsed: true,
+    })
   
     setMoney(recoveredMoney)
     setCurrentWinStreak(0)
@@ -1072,6 +1146,10 @@ alert(
   const nextRound = () => {
     setIsNewRecord(false)
   
+    if (result?.restarted) {
+      resetUserProgress()
+    }
+  
     const newCards = generateCards()
     setCards(newCards)
     saveCurrentCards(newCards)
@@ -1080,6 +1158,13 @@ alert(
     setRaceWinner(null)
     setRaceTrack(getRandomTrack())
     setRaceProgress(0)
+    setCountdown(null)
+    setRound(1)
+    setScore({ a: 0, b: 0 })
+    setRoundWinner(null)
+    setResult(null)
+  
+    localStorage.setItem(LAST_SCREEN_KEY, "main")
     setScreen("main")
   }
   const getHorseName = (card) => {
@@ -1412,7 +1497,22 @@ alert(
     </span>
   </div>
 
-  <button style={styles.changeCardBtn} onClick={changeCards}>
+  <button
+  style={{
+    ...styles.changeCardBtn,
+    ...(money <= 100000 && {
+      background: "#555",
+      color: "#999",
+      cursor: "not-allowed",
+      opacity: 0.6,
+    }),
+  }}
+  onClick={() => {
+    if (money <= 100000) return
+    playSound("click")
+    changeCards()
+  }}
+>
   {t.change} -5%
   </button>
 </div>
@@ -1753,25 +1853,29 @@ style={{
   />
 </div>
 
-        <div style={styles.shareNickname}>{nickname}</div>
+<div style={styles.shareNickname}>{nickname}</div>
 
-        <div
-  style={{
-    ...styles.shareBigMoney,
-    fontSize: getFontSizeByLength(formatMoney(money, language)),
-  }}
->
+<div style={{ fontSize: "12px", color: "#aaa", marginTop: "6px" }}>
+  {language === "ko" ? "최대 자산" : "Max Asset"}
+</div>
+
 <div
   style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center", // ⭐ 추가
-    gap: "6px",
+    ...styles.shareBigMoney,
+    fontSize: getFontSizeByLength(formatMoney(maxMoney, language)),
   }}
 >
-  <img src={COIN_ICON} style={{ width: "18px" }} />
-  {formatMoney(money, language)}
-</div>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "6px",
+    }}
+  >
+    <img src={COIN_ICON} style={{ width: "18px" }} />
+    {formatMoney(maxMoney, language)}
+  </div>
 </div>
 
         <div style={styles.shareStats}>
@@ -1810,13 +1914,7 @@ style={{
   style={styles.nextBtn}
   onClick={() => {
     playSound("click")
-  
-    const newCards = generateCards()
-    setCards(newCards)
-    saveCurrentCards(newCards)
-  
-    setSelectedCard(null)
-    setScreen("main")
+    nextRound()
   }}
 >
 {t.main}
@@ -1911,7 +2009,7 @@ style={{
     marginTop: "8px"
   }}
 >
-{t.currentAsset}: {formatMoney(result.money, language)}
+  {t.currentAsset}: {formatMoney(result.money, language)}
 </div>
 
       {/* 파산 */}
@@ -1923,22 +2021,22 @@ style={{
 
 {/* 버튼 */}
 <div style={styles.resultActionBox}>
-  {!result.isWin && !reviveUsed && (
-    <button
-      style={{
-        ...styles.nextBtn,
-        background: "#f6c343",
-        color: "#111",
-        fontWeight: "bold",
-      }}
-      onClick={() => {
-        playSound("click")
-        handleRevive()
-      }}
-    >
+{result.canRevive && (
+  <button
+    style={{
+      ...styles.nextBtn,
+      background: "#f6c343",
+      color: "#111",
+      fontWeight: "bold",
+    }}
+    onClick={() => {
+      playSound("click")
+      handleRevive()
+    }}
+  >
     {t.revive}
-    </button>
-  )}
+  </button>
+)}
 
   <button
     style={{
@@ -2258,7 +2356,7 @@ const styles = {
   tierBadge: {
     width: "24px",
     height: "24px",
-    borderRadius: "6px", // 변경
+    borderRadius: "6px", 
     color: "#111",
     display: "flex",
     justifyContent: "center",
