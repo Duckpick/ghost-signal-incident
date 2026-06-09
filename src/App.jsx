@@ -2017,6 +2017,7 @@ ${GAME_CONFIG.map.viewHeight * GAME_CONFIG.map.sightYRate - playerPos.y}px
   onMouseUp={stopTouchMove}
   onMouseLeave={stopTouchMove}
   onTouchStart={() => startTouchMove(0, -GAME_CONFIG.player.moveStep)}
+  onContextMenu={(e) => e.preventDefault()}
   onTouchEnd={stopTouchMove}
   onTouchCancel={stopTouchMove}
 >
@@ -2029,6 +2030,7 @@ ${GAME_CONFIG.map.viewHeight * GAME_CONFIG.map.sightYRate - playerPos.y}px
   onMouseUp={stopTouchMove}
   onMouseLeave={stopTouchMove}
   onTouchStart={() => startTouchMove(-GAME_CONFIG.player.moveStep, 0)}
+  onContextMenu={(e) => e.preventDefault()}
   onTouchEnd={stopTouchMove}
   onTouchCancel={stopTouchMove}
 >
@@ -2041,6 +2043,7 @@ ${GAME_CONFIG.map.viewHeight * GAME_CONFIG.map.sightYRate - playerPos.y}px
   onMouseUp={stopTouchMove}
   onMouseLeave={stopTouchMove}
   onTouchStart={() => startTouchMove(GAME_CONFIG.player.moveStep, 0)}
+  onContextMenu={(e) => e.preventDefault()}
   onTouchEnd={stopTouchMove}
   onTouchCancel={stopTouchMove}
 >
@@ -2053,6 +2056,7 @@ ${GAME_CONFIG.map.viewHeight * GAME_CONFIG.map.sightYRate - playerPos.y}px
   onMouseUp={stopTouchMove}
   onMouseLeave={stopTouchMove}
   onTouchStart={() => startTouchMove(0, GAME_CONFIG.player.moveStep)}
+  onContextMenu={(e) => e.preventDefault()}
   onTouchEnd={stopTouchMove}
   onTouchCancel={stopTouchMove}
 >
@@ -3212,6 +3216,9 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    touchAction: "none",
+WebkitUserSelect: "none",
+userSelect: "none",
   },
 
 
@@ -3233,6 +3240,10 @@ const styles = {
     fontWeight: "bold",
 
     backdropFilter: "blur(4px)",
+    WebkitTouchCallout: "none",
+WebkitUserSelect: "none",
+userSelect: "none",
+touchAction: "none",
   },
 
   moveCenter: {
