@@ -949,6 +949,10 @@ if (!heartbeatRef.current) {
   const movePlayer = (dx, dy) => {
     if (ending || !lanternOn) return
     setPlayerPos((prev) => {
+      if (dx !== 0 && dy !== 0) {
+        dx *= 0.707
+        dy *= 0.707
+      }
       const nextX = Math.min(
         stageConfig.mapSize,
         Math.max(0, prev.x + dx)
@@ -1034,21 +1038,21 @@ if (!heartbeatRef.current) {
       return
     }
   
-    if (Math.abs(dx) > Math.abs(dy)) {
-      startTouchMove(
-        dx > 0
-          ? GAME_CONFIG.player.moveStep
-          : -GAME_CONFIG.player.moveStep,
-        0
-      )
-    } else {
-      startTouchMove(
-        0,
-        dy > 0
-          ? GAME_CONFIG.player.moveStep
-          : -GAME_CONFIG.player.moveStep
-      )
-    }
+    const moveX =
+    Math.abs(dx) > deadZone
+      ? dx > 0
+        ? GAME_CONFIG.player.moveStep
+        : -GAME_CONFIG.player.moveStep
+      : 0
+  
+  const moveY =
+    Math.abs(dy) > deadZone
+      ? dy > 0
+        ? GAME_CONFIG.player.moveStep
+        : -GAME_CONFIG.player.moveStep
+      : 0
+  
+  startTouchMove(moveX, moveY)
   }
 
 
