@@ -983,21 +983,32 @@ if (!heartbeatRef.current) {
   }
 
   const startTouchMove = (dx, dy) => {
-    if (touchMoveRef.current) {
-      clearInterval(touchMoveRef.current)
+    const nextKey = `${dx},${dy}`
+  
+    if (touchMoveRef.current?.key === nextKey) {
+      return
+    }
+  
+    if (touchMoveRef.current?.timer) {
+      clearInterval(touchMoveRef.current.timer)
     }
   
     movePlayer(dx, dy)
   
-    touchMoveRef.current = setInterval(() => {
+    const timer = setInterval(() => {
       movePlayer(dx, dy)
     }, GAME_CONFIG.player.moveInterval)
+  
+    touchMoveRef.current = {
+      key: nextKey,
+      timer,
+    }
   }
   
   const stopTouchMove = () => {
-    if (!touchMoveRef.current) return
+    if (!touchMoveRef.current?.timer) return
   
-    clearInterval(touchMoveRef.current)
+    clearInterval(touchMoveRef.current.timer)
     touchMoveRef.current = null
   }
 
