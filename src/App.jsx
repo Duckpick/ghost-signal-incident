@@ -981,6 +981,27 @@ if (!heartbeatRef.current) {
       }
     })
   }
+
+  const startTouchMove = (dx, dy) => {
+    if (touchMoveRef.current) {
+      clearInterval(touchMoveRef.current)
+    }
+  
+    movePlayer(dx, dy)
+  
+    touchMoveRef.current = setInterval(() => {
+      movePlayer(dx, dy)
+    }, GAME_CONFIG.player.moveInterval)
+  }
+  
+  const stopTouchMove = () => {
+    if (!touchMoveRef.current) return
+  
+    clearInterval(touchMoveRef.current)
+    touchMoveRef.current = null
+  }
+
+
   const getNearObject = () => {
     return stageObjects.find((object) => {
       const objectCenterX = object.x + OBJECT_CONFIG.size / 2
@@ -1281,6 +1302,7 @@ if (!heartbeatRef.current) {
   ])
 
   const pressedKeysRef = useRef({})
+  const touchMoveRef = useRef(null)
 
   useEffect(() => {
     const moveKeys = [
@@ -1989,33 +2011,53 @@ ${GAME_CONFIG.map.viewHeight * GAME_CONFIG.map.sightYRate - playerPos.y}px
 
               <div style={styles.movePad}>
                 <div style={styles.moveRing}>
-                  <button
-                    style={{ ...styles.moveBtn, top: "10px", left: "69px" }}
-                    onClick={() => movePlayer(0, -GAME_CONFIG.player.moveStep)}
-                  >
-                    ▲
-                  </button>
+                <button
+  style={{ ...styles.moveBtn, top: "10px", left: "69px" }}
+  onMouseDown={() => startTouchMove(0, -GAME_CONFIG.player.moveStep)}
+  onMouseUp={stopTouchMove}
+  onMouseLeave={stopTouchMove}
+  onTouchStart={() => startTouchMove(0, -GAME_CONFIG.player.moveStep)}
+  onTouchEnd={stopTouchMove}
+  onTouchCancel={stopTouchMove}
+>
+  ▲
+</button>
 
-                  <button
-                    style={{ ...styles.moveBtn, left: "10px", top: "69px" }}
-                    onClick={() => movePlayer(-GAME_CONFIG.player.moveStep, 0)}
-                  >
-                    ◀
-                  </button>
+<button
+  style={{ ...styles.moveBtn, left: "10px", top: "69px" }}
+  onMouseDown={() => startTouchMove(-GAME_CONFIG.player.moveStep, 0)}
+  onMouseUp={stopTouchMove}
+  onMouseLeave={stopTouchMove}
+  onTouchStart={() => startTouchMove(-GAME_CONFIG.player.moveStep, 0)}
+  onTouchEnd={stopTouchMove}
+  onTouchCancel={stopTouchMove}
+>
+  ◀
+</button>
 
-                  <button
-                    style={{ ...styles.moveBtn, right: "10px", top: "69px" }}
-                    onClick={() => movePlayer(GAME_CONFIG.player.moveStep, 0)}
-                  >
-                    ▶
-                  </button>
+<button
+  style={{ ...styles.moveBtn, right: "10px", top: "69px" }}
+  onMouseDown={() => startTouchMove(GAME_CONFIG.player.moveStep, 0)}
+  onMouseUp={stopTouchMove}
+  onMouseLeave={stopTouchMove}
+  onTouchStart={() => startTouchMove(GAME_CONFIG.player.moveStep, 0)}
+  onTouchEnd={stopTouchMove}
+  onTouchCancel={stopTouchMove}
+>
+  ▶
+</button>
 
-                  <button
-                    style={{ ...styles.moveBtn, bottom: "10px", left: "69px" }}
-                    onClick={() => movePlayer(0, GAME_CONFIG.player.moveStep)}
-                  >
-                    ▼
-                  </button>
+<button
+  style={{ ...styles.moveBtn, bottom: "10px", left: "69px" }}
+  onMouseDown={() => startTouchMove(0, GAME_CONFIG.player.moveStep)}
+  onMouseUp={stopTouchMove}
+  onMouseLeave={stopTouchMove}
+  onTouchStart={() => startTouchMove(0, GAME_CONFIG.player.moveStep)}
+  onTouchEnd={stopTouchMove}
+  onTouchCancel={stopTouchMove}
+>
+  ▼
+</button>
 
                   <div style={styles.moveCenter}></div>
                 </div>
