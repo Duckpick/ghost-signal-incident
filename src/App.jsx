@@ -732,7 +732,7 @@ if (!heartbeatRef.current) {
       soundOn
     ) {
       heartbeatRef.current.volume =
-        volume * 0.25
+        volume * 1.2
   
       heartbeatRef.current.play().catch(() => {})
     } else {
@@ -771,7 +771,7 @@ if (!heartbeatRef.current) {
       soundOn
     ) {
       bgmRef.current.volume =
-        volume * 0.6
+        volume * 0.3
   
       bgmRef.current.play().catch(() => {})
     } else {
