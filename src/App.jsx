@@ -1014,6 +1014,10 @@ if (!heartbeatRef.current) {
   
     clearInterval(touchMoveRef.current.timer)
     touchMoveRef.current = null
+    setJoystickKnob({
+      x: 0,
+      y: 0,
+    })
   }
 
   const handleJoystickMove = (clientX, clientY) => {
@@ -1027,6 +1031,27 @@ if (!heartbeatRef.current) {
   
     const dx = clientX - centerX
     const dy = clientY - centerY
+
+    const maxDistance = 32
+
+const distance =
+  Math.hypot(dx, dy)
+
+const limitedDistance =
+  Math.min(distance, maxDistance)
+
+const angle =
+  Math.atan2(dy, dx)
+
+setJoystickKnob({
+  x:
+    Math.cos(angle) *
+    limitedDistance,
+
+  y:
+    Math.sin(angle) *
+    limitedDistance,
+})
   
     const deadZone = 20
   
@@ -1357,6 +1382,11 @@ if (!heartbeatRef.current) {
 
   const pressedKeysRef = useRef({})
   const touchMoveRef = useRef(null)
+  const [joystickKnob, setJoystickKnob] =
+  useState({
+    x: 0,
+    y: 0,
+  })
   const joystickRef = useRef(null)
 
   useEffect(() => {
@@ -2088,7 +2118,16 @@ ${GAME_CONFIG.map.viewHeight * GAME_CONFIG.map.sightYRate - playerPos.y}px
     onTouchEnd={stopTouchMove}
     onTouchCancel={stopTouchMove}
   >
-    <div style={styles.moveCenter}></div>
+   <div
+  style={{
+    ...styles.moveCenter,
+
+    transform: `translate(
+      calc(-50% + ${joystickKnob.x}px),
+      calc(-50% + ${joystickKnob.y}px)
+    )`,
+  }}
+></div>
   </div>
 </div>
 
@@ -2786,6 +2825,10 @@ const styles = {
     overflow: "hidden",
     border: "1px solid rgba(255,255,255,0.04)",
     background: "#020304",
+    touchAction: "none",
+overscrollBehavior: "none",
+WebkitUserSelect: "none",
+userSelect: "none",
   },
 
   mapArea: {
@@ -3088,7 +3131,7 @@ const styles = {
   leftHandWrap: {
     position: "absolute",
     left: "-120px",
-    bottom: "30px",
+    bottom: "10px",
     width: "430px",
     height: "420px",
     zIndex: 40,
@@ -3104,8 +3147,8 @@ const styles = {
   rightLanternWrap: {
     position: "absolute",
 
-    right: "-18px",
-    bottom: "100px",
+    right: "-20px",
+    bottom: "50px",
 
     width: "290px",
 
@@ -3273,6 +3316,8 @@ touchAction: "none",
   },
 
   moveCenter: {
+    transition:
+  "transform 0.08s linear",
     position: "absolute",
 
     left: "50%",
@@ -3294,8 +3339,8 @@ touchAction: "none",
   moveRing: {
     position: "relative",
 
-    width: "180px",
-    height: "180px",
+    width: "140px",
+    height: "140px",
 
     borderRadius: "50%",
 
@@ -3304,6 +3349,9 @@ touchAction: "none",
     background: "rgba(255,255,255,0.03)",
 
     backdropFilter: "blur(4px)",
+    touchAction: "none",
+WebkitUserSelect: "none",
+userSelect: "none",
   },
   mapLayer: {
     position: "absolute",
