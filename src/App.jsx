@@ -30,7 +30,7 @@ const GAME_CONFIG = {
     startX: 450,
     startY: 450,
     moveStep: 8,
-    moveInterval: 36,
+    moveInterval: 55,
   },
 
   erosion: {
